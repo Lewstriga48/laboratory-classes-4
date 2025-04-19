@@ -1,23 +1,32 @@
 const express = require("express");
-
-const { MENU_LINKS } = require("../constants/navigation");
-const { STATUS_CODE } = require("../constants/statusCode");
-const productsSlice = require("../store/products");
-
 const router = express.Router();
 
-router.get("/", (_request, response) => {
-  response.render("products.ejs", {
+const { MENU_LINKS } = require("../constants/navigation");
+const STATUS_CODE = require("../constants/statusCode");
+const {
+  getProductsView,
+  getAddProductView,
+  addNewProduct,
+  getNewProductView,
+  getProductView,
+  deleteProduct,
+} = require("../controllers/productsController");
+
+// Listeleme
+router.get("/", (req, res) => {
+  const products = require("../models/Product").getAll();
+  res.render("products.ejs", {
     headTitle: "Shop - Products",
     path: "/",
     menuLinks: MENU_LINKS,
     activeLinkPath: "/products",
-    products: productsSlice.products,
+    products,
   });
 });
 
-router.get("/add", (_request, response) => {
-  response.render("add-product.ejs", {
+// Ürün ekleme formu
+router.get("/add", (req, res) => {
+  res.render("add-product.ejs", {
     headTitle: "Shop - Add product",
     path: "/add",
     menuLinks: MENU_LINKS,
@@ -25,20 +34,46 @@ router.get("/add", (_request, response) => {
   });
 });
 
-router.post("/add", (request, response) => {
-  productsSlice.newestProduct = request.body;
-  productsSlice.products.push(request.body);
-  response.status(STATUS_CODE.FOUND).redirect("/products/new");
+// Yeni ürün ekleme işlemi
+router.post("/add", (req, res) => {
+  const Product = require("../models/Product");
+  const { name, description } = req.body;
+  const newProduct = new Product(name, description);
+  Product.add(newProduct);
+  res.status(STATUS_CODE.FOUND).redirect("/products/new");
 });
 
-router.get("/new", (_request, response) => {
-  response.render("new-product.ejs", {
+// Son eklenen ürünü göster
+router.get("/new", (req, res) => {
+  const newestProduct = require("../models/Product").getLast();
+  res.render("new-product.ejs", {
     headTitle: "Shop - New product",
     path: "/new",
-    activeLinkPath: "/products/new",
     menuLinks: MENU_LINKS,
-    newestProduct: productsSlice.newestProduct,
+    activeLinkPath: "/products/new",
+    newestProduct,
   });
+});
+
+// Belirli ürün detayını göster
+router.get("/:name", (req, res) => {
+  const product = require("../models/Product").findByName(req.params.name);
+  if (!product) {
+    return res.status(STATUS_CODE.NOT_FOUND).send("Product not found");
+  }
+  res.render("product.ejs", {
+    headTitle: `Shop - ${product.name}`,
+    path: "/product",
+    menuLinks: MENU_LINKS,
+    activeLinkPath: "/products",
+    product,
+  });
+});
+
+// Ürün silme işlemi
+router.delete("/:name", (req, res) => {
+  require("../models/Product").deleteByName(req.params.name);
+  res.status(STATUS_CODE.OK).json({ success: true });
 });
 
 module.exports = router;

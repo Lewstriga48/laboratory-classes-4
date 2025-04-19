@@ -1,0 +1,27 @@
+<h1><%= product.name %></h1>
+<div><%= product.description %></div>
+
+<button onclick="deleteProduct('<%= product.name %>')">Delete</button>
+
+<script>
+  async function deleteProduct(name) {
+    const confirmed = confirm(`Are you sure you want to delete "${name}"?`);
+    if (!confirmed) return;
+
+    try {
+      const response = await fetch(`/products/${name}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        alert("Product deleted successfully.");
+        window.location.href = "/products";
+      } else {
+        alert("Failed to delete product.");
+      }
+    } catch (error) {
+      console.error(error);
+      alert("An error occurred.");
+    }
+  }
+</script>
